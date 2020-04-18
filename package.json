@@ -1,6 +1,5 @@
 {
   "name": "crx3-webpack-plugin",
-  "type": "module",
   "version": "1.0.24",
   "description": "a webpack plugin for crx3",
   "main": "dist/bundle.js",
