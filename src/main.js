@@ -1,15 +1,15 @@
 import path, { join } from 'path';
 import crx3 from 'crx3';
 
-const MANIFEST = "manifest.json";
-const NAME = "crx";
-const UPDATE_URL = "http://localhost:8000/";
-const UPDATE_FILENAME = "updates.xml";
+const MANIFEST = 'manifest.json';
+const NAME = 'crx';
+const UPDATE_URL = 'http://localhost:8000/';
+const UPDATE_FILENAME = 'updates.xml';
 
 class Plugin {
   constructor(options) {
     this.options = options || {};
-    
+
     if (!this.options.name) this.options.name = NAME;
 
     if (!this.options.updateUrl) {
@@ -25,14 +25,20 @@ class Plugin {
     this.zip = !!this.options.zip;
 
     // remove trailing slash
-    this.options.updateUrl = this.options.updateUrl.replace(/\/$/, "");
+    this.options.updateUrl = this.options.updateUrl.replace(/\/$/, '');
 
     // setup paths
     this.context = path.dirname(module.parent.filename);
-    this.keyFile = path.isAbsolute(this.options.keyFile) ? this.options.keyFile : join(this.context, this.options.keyFile);
-    this.outputPath = path.isAbsolute(this.options.outputPath) ? this.options.outputPath : join(this.context, this.options.outputPath);
-    this.contentPath = path.isAbsolute(this.options.contentPath) ? this.options.contentPath : join(this.context, this.options.contentPath);
-    this.name = this.options.name
+    this.keyFile = path.isAbsolute(this.options.keyFile)
+      ? this.options.keyFile
+      : join(this.context, this.options.keyFile);
+    this.outputPath = path.isAbsolute(this.options.outputPath)
+      ? this.options.outputPath
+      : join(this.context, this.options.outputPath);
+    this.contentPath = path.isAbsolute(this.options.contentPath)
+      ? this.options.contentPath
+      : join(this.context, this.options.contentPath);
+    this.name = this.options.name;
 
     // set output info
     this.crxName = `${this.options.name}.crx`;
@@ -43,7 +49,7 @@ class Plugin {
     this.manifest = join(this.contentPath, MANIFEST);
     this.updateFile = join(this.outputPath, this.options.updateFilename);
     this.updateUrl = `${this.options.updateUrl}/${this.options.updateFilename}`;
-    
+
     // bind methods
     this.apply = this.apply.bind(this);
     this.package = this.package.bind(this);
@@ -52,9 +58,16 @@ class Plugin {
 
   // hook into webpack
   apply(compiler) {
-    return compiler.plugin('done', () => {
+    const doneHook = () => {
       this.package(this);
-    })
+    };
+    // https://github.com/gdborton/webpack-parallel-uglify-plugin/issues/58#issuecomment-499537639
+    // avoid compiler hook warning
+    if (compiler.hooks) {
+      compiler.hooks.done.tap('Crx3WebpackPlugin', doneHook);
+    } else {
+      compiler.plugin('done', doneHook);
+    }
   }
 
   handleOptionalSettings(options) {
@@ -72,11 +85,10 @@ class Plugin {
       xmlPath: this.updateFile,
       crxURL: this.updateUrl,
       crxPath: this.crxFile,
-    }
+    };
     this.handleOptionalSettings(options);
 
-    crx3([this.manifest], options)
-      .catch(console.error);
+    crx3([this.manifest], options).catch(console.error);
   }
 }
 
